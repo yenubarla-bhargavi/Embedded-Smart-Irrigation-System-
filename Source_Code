@@ -1,0 +1,93 @@
+#include <SoftwareSerial.h>
+
+// GSM Module Connections
+SoftwareSerial gsm(9, 10);
+
+// Pin Definitions
+const int moisturePin = A0;
+const int relayPin = 7;
+
+// Moisture Threshold
+const int threshold = 500;
+
+// Pump Status Variable
+bool pumpState = false;
+
+void setup()
+{
+  // Serial Monitor
+  Serial.begin(9600);
+
+  // GSM Communication
+  gsm.begin(9600);
+
+  // Relay Output
+  pinMode(relayPin, OUTPUT);
+
+  // Initially Pump OFF
+  digitalWrite(relayPin, LOW);
+
+  Serial.println("Smart Irrigation System Started");
+
+  delay(2000);
+}
+
+void loop()
+{
+  // Read Moisture Sensor
+  int moistureValue = analogRead(moisturePin);
+
+  // Display Value
+  Serial.print("Moisture Value: ");
+  Serial.println(moistureValue);
+
+  // Soil Dry Condition
+  if(moistureValue < threshold)
+  {
+    if(pumpState == false)
+    {
+      digitalWrite(relayPin, HIGH);
+
+      Serial.println("Pump ON");
+
+      sendSMS("Soil Dry. Pump Turned ON");
+
+      pumpState = true;
+    }
+  }
+
+  // Soil Wet Condition
+  else
+  {
+    if(pumpState == true)
+    {
+      digitalWrite(relayPin, LOW);
+
+      Serial.println("Pump OFF");
+
+      sendSMS("Soil Moisture Adequate. Pump Turned OFF");
+
+      pumpState = false;
+    }
+  }
+
+  delay(5000);
+}
+
+void sendSMS(String message)
+{
+  gsm.println("AT");
+  delay(1000);
+
+  gsm.println("AT+CMGF=1");
+  delay(1000);
+
+  gsm.println("AT+CMGS=\"+91XXXXXXXXXX\"");
+  delay(1000);
+
+  gsm.print(message);
+
+  gsm.write(26);
+
+  delay(3000);
+}
